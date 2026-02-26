@@ -1,0 +1,7 @@
+Database Management Systems
+
+A database management system (DBMS) is software that manages databases, allowing users to store, retrieve, and manipulate data efficiently. DBMS provides an interface between the database and end users or application programs.
+
+There are several types of databases including relational databases (SQL), NoSQL databases, and NewSQL databases. Relational databases organize data into tables with rows and columns, while NoSQL databases use various data models like document, key-value, graph, or column-family stores.
+
+Popular database systems include MySQL, PostgreSQL, MongoDB, and Redis. Modern applications often use a combination of different database types to meet various requirements for consistency, availability, and performance.

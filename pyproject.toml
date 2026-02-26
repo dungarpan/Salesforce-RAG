@@ -1,9 +1,15 @@
 [project]
 name = "salesforce-rag"
 version = "0.1.0"
-description = "Add your description here"
+description = "Snowflake Cortex RAG application for PDF and text files"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "streamlit>=1.54.0",
+    "snowflake-connector-python>=3.7.0",
+    "snowflake-snowpark-python>=1.10.0",
+    "pypdf>=4.0.0",
+    "python-dotenv>=1.0.0",
+    "pandas>=2.0.0",
+    "chardet>=5.0.0,<6.0.0",
 ]

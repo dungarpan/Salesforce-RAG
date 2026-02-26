@@ -1,0 +1,7 @@
+Data Science Fundamentals
+
+Data science is an interdisciplinary field that combines statistics, computer science, and domain expertise to extract insights from data. It involves collecting, cleaning, analyzing, and interpreting large volumes of data to support decision-making.
+
+The data science lifecycle typically includes data collection, data cleaning, exploratory data analysis, feature engineering, model building, and deployment. Python and R are the most commonly used programming languages in data science, along with libraries like pandas, numpy, and scikit-learn.
+
+Key skills for data scientists include programming, statistical analysis, machine learning, data visualization, and communication. Data scientists work across various industries including finance, healthcare, technology, and retail to solve complex problems using data-driven approaches.

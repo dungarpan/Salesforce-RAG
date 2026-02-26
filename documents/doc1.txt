@@ -1,0 +1,7 @@
+Introduction to Machine Learning
+
+Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed. It focuses on the development of algorithms that can identify patterns and make predictions based on input data.
+
+There are three main types of machine learning: supervised learning, unsupervised learning, and reinforcement learning. Supervised learning uses labeled data to train models, while unsupervised learning finds patterns in unlabeled data. Reinforcement learning involves training agents to make decisions through trial and error.
+
+Common applications of machine learning include image recognition, natural language processing, recommendation systems, and predictive analytics. The field continues to evolve with advances in deep learning and neural networks.
