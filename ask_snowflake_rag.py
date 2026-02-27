@@ -8,11 +8,11 @@ Flow:
 """
 
 import os
-import argparse
 from typing import List, Tuple
 
 from dotenv import load_dotenv
 import snowflake.connector
+import streamlit as st
 
 load_dotenv()
 
@@ -115,37 +115,45 @@ def generate_answer(conn, question: str, chunks: List[Tuple[str, int, str, float
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ask questions using Snowflake-native RAG.")
-    parser.add_argument("--question", type=str, required=True, help="Question to ask.")
-    parser.add_argument("--top-k", type=int, default=2, help="Number of chunks to retrieve.")
-    parser.add_argument(
-        "--table",
-        type=str,
-        default=os.getenv("SNOWFLAKE_EMBED_TABLE", DEFAULT_TABLE_NAME),
-        help="Table name containing chunked documents and embeddings.",
-    )
-    args = parser.parse_args()
+    st.set_page_config(page_title="Snowflake RAG", page_icon=":snowflake:")
+    st.title("Snowflake RAG")
+    st.caption("Similarity search and answer generation powered by Snowflake Cortex.")
 
-    print("Connecting to Snowflake...")
-    conn = get_snowflake_connection()
-    try:
-        set_context(conn)
-        print(f"Searching top {args.top_k} chunks from '{args.table}'...")
-        chunks = retrieve_similar_chunks(conn, args.question, args.top_k, args.table)
-        if not chunks:
-            print("No chunks found. Check table/database/schema values.")
+    default_table = os.getenv("SNOWFLAKE_EMBED_TABLE", DEFAULT_TABLE_NAME)
+    question = st.text_area("Ask a question", placeholder="Type your question here...")
+    top_k = st.slider("Top K chunks", min_value=1, max_value=10, value=2)
+    table_name = st.text_input("Embeddings table", value=default_table)
+
+    if st.button("Get answer", type="primary"):
+        if not question.strip():
+            st.warning("Please enter a question.")
             return
 
-        print("\nTop chunks:")
-        for filename, chunk_id, _, similarity in chunks:
-            print(f"- {filename} | chunk {chunk_id} | score={similarity:.4f}")
+        try:
+            with st.spinner("Connecting to Snowflake..."):
+                conn = get_snowflake_connection()
+            try:
+                set_context(conn)
+                with st.spinner("Retrieving relevant chunks..."):
+                    chunks = retrieve_similar_chunks(conn, question, top_k, table_name)
+                if not chunks:
+                    st.info("No chunks found. Check table/database/schema values.")
+                    return
 
-        print("\nGenerating answer with Snowflake Cortex...")
-        answer = generate_answer(conn, args.question, chunks)
-        print("\nAnswer:\n")
-        print(answer)
-    finally:
-        conn.close()
+                with st.spinner("Generating answer..."):
+                    answer = generate_answer(conn, question, chunks)
+            finally:
+                conn.close()
+
+            st.subheader("Answer")
+            st.write(answer)
+
+            st.subheader("Retrieved chunks")
+            for filename, chunk_id, chunk_text, similarity in chunks:
+                with st.expander(f"{filename} | chunk {chunk_id} | score={similarity:.4f}"):
+                    st.write(chunk_text)
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 
 if __name__ == "__main__":
