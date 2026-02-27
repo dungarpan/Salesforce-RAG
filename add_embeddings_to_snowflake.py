@@ -103,7 +103,7 @@ def chunk_document_by_paragraphs(text: str) -> List[str]:
     return [paragraph.strip() for paragraph in paragraphs if paragraph.strip()]
 
 
-def create_table_if_not_exists(conn, table_name: str = "document_embeddings"):
+def create_embeddings_table_if_not_exists(conn, table_name: str = "document_embeddings"):
     """
     Create the embeddings table if it doesn't exist.
     
@@ -132,8 +132,37 @@ def create_table_if_not_exists(conn, table_name: str = "document_embeddings"):
         cursor.close()
 
 
+def create_doc_contents_table_if_not_exists(conn, table_name: str = "doc_contents"):
+    """
+    Create the source document table if it doesn't exist.
+
+    Args:
+        conn: Snowflake connection
+        table_name: Name of the table to create
+    """
+    cursor = conn.cursor()
+
+    create_table_sql = f"""
+    CREATE TABLE IF NOT EXISTS {table_name} (
+        file_id NUMBER AUTOINCREMENT START 1 INCREMENT 1,
+        file_name VARCHAR(255) UNIQUE,
+        content VARCHAR,
+        created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+    )
+    """
+
+    try:
+        cursor.execute(create_table_sql)
+        print(f"Table '{table_name}' created or already exists.")
+    finally:
+        cursor.close()
+
+
 def insert_embeddings(
-    conn, documents: List[Tuple[str, str]], table_name: str = "document_embeddings"
+    conn,
+    documents: List[Tuple[str, str]],
+    table_name: str = "document_embeddings",
+    doc_contents_table: str = "doc_contents",
 ):
     """
     Insert documents and embeddings into Snowflake.
@@ -148,9 +177,25 @@ def insert_embeddings(
     cursor = conn.cursor()
     embed_model = os.getenv("SNOWFLAKE_EMBED_MODEL", DEFAULT_EMBED_MODEL)
     total_chunks = 0
+    inserted_docs = 0
+    skipped_docs = 0
     
     try:
         for filename, text in documents:
+            cursor.execute(
+                f"SELECT 1 FROM {doc_contents_table} WHERE file_name = %s LIMIT 1",
+                (filename,),
+            )
+            if cursor.fetchone():
+                skipped_docs += 1
+                print(f"Skipped (already exists in {doc_contents_table}): {filename}")
+                continue
+
+            cursor.execute(
+                f"INSERT INTO {doc_contents_table} (file_name, content) VALUES (%s, %s)",
+                (filename, text),
+            )
+
             chunks = chunk_document_by_paragraphs(text)
             for chunk_id, chunk_text in enumerate(chunks, start=1):
                 row_id = f"{filename}_chunk_{chunk_id}"
@@ -165,12 +210,17 @@ def insert_embeddings(
                 )
 
             total_chunks += len(chunks)
-            print(f"Inserted: {filename} ({len(chunks)} chunks)")
+            inserted_docs += 1
+            print(
+                f"Inserted: {filename} "
+                f"(doc_contents + {len(chunks)} embedding chunks)"
+            )
         
         conn.commit()
         print(
-            f"\nSuccessfully inserted {len(documents)} documents "
-            f"as {total_chunks} paragraph chunks with embeddings."
+            f"\nDone. Inserted {inserted_docs} new documents, "
+            f"skipped {skipped_docs} existing documents, "
+            f"inserted {total_chunks} paragraph chunks with embeddings."
         )
         
     except Exception as e:
@@ -215,12 +265,13 @@ def main():
         conn.close()
         return
 
-    # Create table
-    print("\n4. Creating table if needed...")
+    # Create tables
+    print("\n4. Creating tables if needed...")
     try:
-        create_table_if_not_exists(conn)
+        create_doc_contents_table_if_not_exists(conn)
+        create_embeddings_table_if_not_exists(conn)
     except Exception as e:
-        print(f"Error creating table: {e}")
+        print(f"Error creating tables: {e}")
         conn.close()
         return
     
